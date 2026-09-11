@@ -10,7 +10,7 @@ import './HtmlFrame.css'
 const SANDBOX = [
   'allow-scripts',
   'allow-downloads', // фильтрует script.js
-  'allow-popups', // ссылки в новой вкладке
+  'allow-popups', // ссылки в новой вкладке; без него Chrome блокирует mailto: и tel:
   'allow-popups-to-escape-sandbox', // новая вкладка — обычная страница без sandbox
   'allow-forms', // без него не срабатывает событие submit
   'allow-modals', // alert, confirm, prompt
@@ -22,8 +22,12 @@ type HtmlFrameProps = {
   /** URL HTML-документа; от него разрешаются относительные ресурсы документа. */
   src: string
   title: string
-  /** Переход по ссылке документа на origin приложения. */
-  onNavigate: (url: URL) => void
+  /**
+   * Переход по ссылке документа на origin приложения. Путь приходит строкой
+   * "/about?q=1#top" — её принимает navigate из react-router. Объект URL не подходит:
+   * navigate копирует его через spread и теряет pathname, search и hash из прототипа.
+   */
+  onNavigate: (to: string) => void
 }
 
 export function HtmlFrame({ src, title, onNavigate }: HtmlFrameProps) {
@@ -55,7 +59,7 @@ export function HtmlFrame({ src, title, onNavigate }: HtmlFrameProps) {
       if (event.source !== frameRef.current?.contentWindow) return
       if (event.data?.type !== 'html-frame:navigate' || typeof event.data.href !== 'string') return
       const url = URL.parse(event.data.href)
-      if (url?.origin === window.location.origin) navigate(url)
+      if (url?.origin === window.location.origin) navigate(url.pathname + url.search + url.hash)
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)

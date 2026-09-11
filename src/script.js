@@ -386,6 +386,8 @@
     pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
   };
   const pageExtensions = new Set(['html', 'htm', 'php', 'asp', 'aspx', 'jsp', 'cgi']);
+  // Эти схемы открывают внешнее приложение и не скачивают файлы.
+  const contactProtocols = new Set(['mailto:', 'tel:', 'sms:']);
   const positiveInteger = (value, fallback) => Number.isSafeInteger(value) && value > 0 ? value : fallback;
   const maxFileBytes = positiveInteger(config.maxFileBytes, 50 * 1024 * 1024);
   const maxPendingChecks = positiveInteger(config.maxPendingChecks, 3);
@@ -423,6 +425,8 @@
     catch {
       return explicitDownload ? { trigger, url: '[invalid]', filename: suggestedName, eligible: false, reason: 'invalid-url' } : null;
     }
+    // Иначе домен в mailto:info@example.ru распознавался бы как расширение .ru и ссылка блокировалась.
+    if (!explicitDownload && contactProtocols.has(url.protocol)) return null;
     const local = url.protocol === 'blob:' || url.protocol === 'data:';
     let pathName = '';
     if (!local) {

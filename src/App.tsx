@@ -1,33 +1,33 @@
-import { useSyncExternalStore } from 'react'
+import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { HtmlFrame } from './HtmlFrame.tsx'
 import './App.css'
 
-function subscribe(onChange: () => void) {
-  window.addEventListener('popstate', onChange)
-  return () => window.removeEventListener('popstate', onChange)
+function DemoPage() {
+  const navigate = useNavigate()
+  return <HtmlFrame src="/demo.html" title="Демо HTML" onNavigate={navigate} />
 }
 
-function navigate(url: URL) {
-  window.history.pushState(null, '', url)
-  // pushState не вызывает popstate — оповещаем подписчиков сами.
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
-
-function App() {
-  const pathname = useSyncExternalStore(subscribe, () => window.location.pathname)
-
-  if (pathname === '/') {
-    return <HtmlFrame src="/demo.html" title="Демо HTML" onNavigate={navigate} />
-  }
-
+function AppPage() {
+  const { pathname, search, hash } = useLocation()
   return (
     <main className="app-page">
       <h1>Страница приложения</h1>
       <p>
-        <code>{pathname}</code>
+        <code>{pathname + search + hash}</code>
       </p>
-      <a href="/">Вернуться к HTML</a>
+      <Link to="/">Вернуться к HTML</Link>
     </main>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<DemoPage />} />
+        <Route path="*" element={<AppPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

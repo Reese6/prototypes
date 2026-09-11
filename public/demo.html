@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HTML в iframe</title>
+    <style>
+      :root { font: 16px/1.5 system-ui, sans-serif; color: #1f2328; }
+      body { margin: 0; }
+      nav { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 24px; background: #f6f8fa; border-bottom: 1px solid #d0d7de; }
+      main { max-width: 760px; margin: 0 auto; padding: 0 24px 100vh; }
+      section { padding: 8px 16px 24px; border-bottom: 1px solid #d0d7de; scroll-margin-top: 56px; }
+      section:target { background: #fff8c5; }
+      li { margin: 6px 0; }
+      code, #log { font-family: ui-monospace, monospace; font-size: 14px; }
+      .allowed { color: #1a7f37; }
+      .blocked, .unable-to-block { color: #cf222e; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="#hash">#hash</a>
+      <a href="#links">#links</a>
+      <a href="#downloads">#downloads</a>
+    </nav>
+    <main>
+      <section id="hash">
+        <h1>HTML в iframe</h1>
+        <p>Ссылки в шапке меняют фрагмент внутри iframe: работают <code>:target</code> и <code>hashchange</code>.</p>
+        <p>Текущий фрагмент: <code id="hash-status"></code></p>
+      </section>
+
+      <section id="links">
+        <h2>Ссылки</h2>
+        <ul>
+          <li><a href="/about">/about</a> — переход в приложении</li>
+          <li><a href="/">/</a> — корень приложения</li>
+          <li><a href="/about" target="_blank">/about</a> с <code>target="_blank"</code> — приложение в новой вкладке</li>
+          <li><a href="https://example.com/" target="_blank">example.com</a> с <code>target="_blank"</code> — новая вкладка</li>
+          <li><a href="https://example.com/">example.com</a> без <code>target</code> — тоже новая вкладка, iframe остаётся на месте</li>
+        </ul>
+        <form action="/search">
+          <input name="q" value="отчёт" />
+          <button>Искать в приложении</button>
+        </form>
+      </section>
+
+      <section id="downloads">
+        <h2>Скачивание</h2>
+        <p>Фильтрует <code>script.js</code>: сохраняются только проверенные XLS, XLSX и PPTX.</p>
+        <ul>
+          <li><a id="report-link" download="report.xlsx">report.xlsx</a> — настоящий XLSX, разрешено</li>
+          <li><button type="button" id="blob-download">report.xlsx через Blob</button> — <code>URL.createObjectURL</code> и <code>click()</code></li>
+          <li><a download="fake.xlsx" href="data:application/octet-stream,not-an-excel-file">fake.xlsx</a> — внутри не XLSX, заблокировано</li>
+          <li><a download="notes.txt" href="data:text/plain,hello">notes.txt</a> — расширение не разрешено</li>
+        </ul>
+        <h3>Журнал script.js</h3>
+        <ol id="log"></ol>
+      </section>
+    </main>
+
+    <script>
+      const hashStatus = document.getElementById('hash-status');
+      const showHash = () => { hashStatus.textContent = location.hash || '—'; };
+      addEventListener('hashchange', showHash);
+      showHash();
+
+      const log = document.getElementById('log');
+      addEventListener('iframe-download-attempt', ({ detail }) => {
+        const item = document.createElement('li');
+        item.className = detail.status;
+        item.textContent = `${detail.filename || detail.url}: ${detail.status} (${detail.reason})`;
+        log.append(item);
+      });
+
+      // Минимальный XLSX: один лист с ячейкой A1.
+      const REPORT_XLSX = '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';
+      const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      document.getElementById('report-link').href = `data:${XLSX_TYPE};base64,${REPORT_XLSX}`;
+
+      document.getElementById('blob-download').addEventListener('click', () => {
+        const bytes = Uint8Array.from(atob(REPORT_XLSX), (char) => char.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: XLSX_TYPE }));
+        const link = Object.assign(document.createElement('a'), { href: url, download: 'report.xlsx' });
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    </script>
+  </body>
+</html>
